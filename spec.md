@@ -1,25 +1,28 @@
 # Ismael Express
 
 ## Current State
-New project with no existing frontend or backend.
+A luxury menswear shop frontend with hardcoded products (Ralph Lauren, Jos. A. Bank, Nike, Adidas). Backend has basic product CRUD (addProduct, getAllProducts, getProduct, getProductsByCategory) but no auth or image storage. No admin area exists.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Landing page with hero section: "Luxury Menswear - Ralph Lauren | Jos. A. Bank" + Shop Now CTA
-- Navigation: Home, Shop, Suits, Shirts, Accessories, Contact
-- Featured Products section: Polo Shirt ($79), Classic Suit ($399) with product images
-- "Why Shop With Us" section with trust badges
-- Logo/brand header: "Ismael Express" in elegant script style
-- Contact section/footer
+- Admin-only dashboard accessible via `/admin` route
+- Admin login via Internet Identity
+- Product management: add, edit, delete products with image upload
+- Image storage for product photos using blob-storage component
+- Payment overview panel for admins to view Stripe transactions/orders
+- Role-based access: only the canister owner/admin can access dashboard
 
 ### Modify
-N/A
+- Backend: add authorization (admin role), update product model to include imageUrl, add updateProduct and deleteProduct, integrate blob-storage for images
+- Frontend: add Admin link in nav (visible to admins), add /admin route with protected dashboard, wire products to backend instead of hardcoded list
 
 ### Remove
-N/A
+- Hardcoded product list from frontend (replace with backend data)
 
 ## Implementation Plan
-1. Generate logo and product images
-2. Build React frontend with all sections
-3. Backend: simple product catalog with static data
+1. Select components: authorization, blob-storage, stripe
+2. Generate Motoko backend with admin role, product CRUD with imageUrl, payment viewing
+3. Build frontend admin dashboard with: login, product table with edit/delete/add, image uploader, payments tab
+4. Protect admin route — redirect non-admins
+5. Wire public shop to fetch products from backend

@@ -1,49 +1,91 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Menu, RotateCcw, ShieldCheck, Star, Truck, X } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Toaster } from "@/components/ui/sonner";
+import {
+  Link,
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+} from "@tanstack/react-router";
+import {
+  LayoutDashboard,
+  Menu,
+  RotateCcw,
+  ShieldCheck,
+  Star,
+  Truck,
+  X,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import type { Product } from "./backend";
+import { useGetAllProducts, useIsAdmin } from "./hooks/useQueries";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminLogin from "./pages/AdminLogin";
 
 const HARDCODED_PRODUCTS = [
   {
-    id: 1,
+    id: 1n,
     name: "Classic Polo Shirt",
     brand: "Ralph Lauren",
-    price: 79,
+    price: 7900n,
     category: "Shirts",
     description:
       "Signature polo with embroidered pony logo. Crafted from premium cotton piqué.",
-    image: "/assets/generated/polo-shirt-product.dim_600x600.jpg",
+    imageUrl: "/assets/generated/polo-shirt-product.dim_600x600.jpg",
   },
   {
-    id: 2,
+    id: 2n,
     name: "Heritage Suit",
     brand: "Jos. A. Bank",
-    price: 399,
+    price: 39900n,
     category: "Suits",
     description:
       "Two-button classic fit suit in Italian wool blend. Timeless sophistication.",
-    image: "/assets/generated/classic-suit-product.dim_600x600.jpg",
+    imageUrl: "/assets/generated/classic-suit-product.dim_600x600.jpg",
   },
   {
-    id: 3,
+    id: 3n,
     name: "Silk Dress Shirt",
     brand: "Ralph Lauren",
-    price: 149,
+    price: 14900n,
     category: "Shirts",
     description:
       "Crisp white dress shirt with French cuffs. Woven from Egyptian cotton.",
-    image: "/assets/generated/dress-shirt-product.dim_600x600.jpg",
+    imageUrl: "/assets/generated/dress-shirt-product.dim_600x600.jpg",
   },
   {
-    id: 4,
+    id: 4n,
     name: "Woven Silk Tie",
     brand: "Jos. A. Bank",
-    price: 59,
+    price: 5900n,
     category: "Accessories",
     description:
       "Hand-finished silk tie with geometric pattern. The perfect finishing touch.",
-    image: "/assets/generated/silk-tie-product.dim_600x600.jpg",
+    imageUrl: "/assets/generated/silk-tie-product.dim_600x600.jpg",
+  },
+  {
+    id: 5n,
+    name: "Tech Fleece Jogger",
+    brand: "Nike",
+    price: 11000n,
+    category: "Shirts",
+    description:
+      "Engineered Tech Fleece fabric delivers lightweight warmth with a streamlined fit.",
+    imageUrl: "/assets/generated/nike-jogger-product.dim_600x600.jpg",
+  },
+  {
+    id: 6n,
+    name: "Ultraboost Sneaker",
+    brand: "Adidas",
+    price: 19000n,
+    category: "Accessories",
+    description:
+      "Responsive Boost midsole and Primeknit upper for all-day comfort and style.",
+    imageUrl: "/assets/generated/adidas-sneaker-product.dim_600x600.jpg",
   },
 ];
 
@@ -86,6 +128,7 @@ function scrollTo(href: string) {
 function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: isAdmin } = useIsAdmin();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -108,7 +151,6 @@ function Header() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
           <button
             type="button"
             className="flex-shrink-0 bg-transparent border-0 p-0 cursor-pointer"
@@ -121,7 +163,6 @@ function Header() {
             />
           </button>
 
-          {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
             {NAV_LINKS.map((link) => (
               <a
@@ -137,9 +178,18 @@ function Header() {
                 {link.label}
               </a>
             ))}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                data-ocid="nav.admin.link"
+                className="flex items-center gap-1.5 font-sans text-sm font-medium tracking-widest uppercase text-primary hover:text-gold-light transition-colors"
+              >
+                <LayoutDashboard size={14} />
+                Admin
+              </Link>
+            )}
           </nav>
 
-          {/* Mobile menu toggle */}
           <button
             type="button"
             className="md:hidden text-foreground/80 hover:text-primary transition-colors"
@@ -151,7 +201,6 @@ function Header() {
         </div>
       </div>
 
-      {/* Mobile nav */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -175,6 +224,17 @@ function Header() {
                   {link.label}
                 </a>
               ))}
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  data-ocid="nav.admin.link"
+                  className="flex items-center gap-1.5 font-sans text-sm font-medium tracking-widest uppercase text-primary py-2"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <LayoutDashboard size={14} />
+                  Admin
+                </Link>
+              )}
             </nav>
           </motion.div>
         )}
@@ -225,8 +285,9 @@ function Hero() {
             <span className="text-primary">Menswear</span>
           </h1>
 
-          <p className="font-serif text-xl sm:text-2xl text-foreground/60 mb-4 italic tracking-wide">
-            Ralph Lauren &nbsp;|&nbsp; Jos. A. Bank
+          <p className="font-serif text-lg sm:text-xl text-foreground/60 mb-4 italic tracking-wide">
+            Ralph Lauren &nbsp;|&nbsp; Jos. A. Bank &nbsp;|&nbsp; Nike
+            &nbsp;|&nbsp; Adidas
           </p>
 
           <p className="font-sans text-foreground/50 text-sm tracking-widest uppercase mb-10">
@@ -255,11 +316,25 @@ function Hero() {
   );
 }
 
+type DisplayProduct = {
+  id: bigint;
+  name: string;
+  brand: string;
+  price: bigint;
+  category: string;
+  description: string;
+  imageUrl?: string;
+  image?: Product["image"];
+};
+
 function ProductCard({
   product,
   index,
-}: { product: (typeof HARDCODED_PRODUCTS)[0]; index: number }) {
+}: { product: DisplayProduct; index: number }) {
   const [imgError, setImgError] = useState(false);
+
+  const imageSrc =
+    product.imageUrl || (product.image ? product.image.getDirectURL() : null);
 
   return (
     <motion.div
@@ -272,9 +347,9 @@ function ProductCard({
       style={{ boxShadow: "0 4px 24px oklch(0 0 0 / 0.3)" }}
     >
       <div className="relative h-72 overflow-hidden bg-muted">
-        {!imgError ? (
+        {imageSrc && !imgError ? (
           <img
-            src={product.image}
+            src={imageSrc}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             onError={() => setImgError(true)}
@@ -303,7 +378,7 @@ function ProductCard({
         </p>
         <div className="flex items-center justify-between">
           <span className="font-display text-2xl text-primary font-bold">
-            ${product.price}
+            ${(Number(product.price) / 100).toFixed(2)}
           </span>
           <Button
             variant="outline"
@@ -319,6 +394,21 @@ function ProductCard({
 }
 
 function ProductsSection() {
+  const { data: backendProducts, isLoading } = useGetAllProducts();
+
+  const products: DisplayProduct[] =
+    backendProducts && backendProducts.length > 0
+      ? backendProducts.map((p) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand,
+          price: p.price,
+          category: p.category,
+          description: p.description,
+          image: p.image,
+        }))
+      : HARDCODED_PRODUCTS;
+
   return (
     <section id="products" className="py-24 px-4 bg-background">
       <div className="max-w-7xl mx-auto">
@@ -343,14 +433,40 @@ function ProductsSection() {
           </p>
         </motion.div>
 
-        <div
-          data-ocid="products.list"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-        >
-          {HARDCODED_PRODUCTS.map((product, i) => (
-            <ProductCard key={product.id} product={product} index={i + 1} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div
+            data-ocid="products.loading_state"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="bg-card border border-border overflow-hidden"
+              >
+                <Skeleton className="h-72 w-full bg-muted" />
+                <div className="p-5 space-y-3">
+                  <Skeleton className="h-4 w-20 bg-muted" />
+                  <Skeleton className="h-6 w-40 bg-muted" />
+                  <Skeleton className="h-4 w-full bg-muted" />
+                  <Skeleton className="h-4 w-3/4 bg-muted" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            data-ocid="products.list"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {products.map((product, i) => (
+              <ProductCard
+                key={product.id.toString()}
+                product={product}
+                index={i + 1}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -428,8 +544,8 @@ function ContactFooter() {
             className="h-10 w-auto object-contain mb-4"
           />
           <p className="font-sans text-muted-foreground text-sm leading-relaxed">
-            The premier destination for authentic Ralph Lauren and Jos. A. Bank
-            menswear.
+            The premier destination for authentic Ralph Lauren, Jos. A. Bank,
+            Nike, and Adidas menswear.
           </p>
         </div>
 
@@ -490,9 +606,10 @@ function ContactFooter() {
   );
 }
 
-export default function App() {
+function ShopPage() {
   return (
     <div className="min-h-screen bg-background">
+      <Toaster />
       <Header />
       <main>
         <Hero />
@@ -502,4 +619,45 @@ export default function App() {
       <ContactFooter />
     </div>
   );
+}
+
+// TanStack Router setup
+const rootRoute = createRootRoute({
+  component: Outlet,
+});
+
+const indexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/",
+  component: ShopPage,
+});
+
+const adminLoginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/login",
+  component: AdminLogin,
+});
+
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin",
+  component: AdminDashboard,
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  adminLoginRoute,
+  adminRoute,
+]);
+
+const router = createRouter({ routeTree });
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
+
+export default function App() {
+  return <RouterProvider router={router} />;
 }

@@ -1,53 +1,154 @@
 import Text "mo:core/Text";
-import Array "mo:core/Array";
 import List "mo:core/List";
-import Runtime "mo:core/Runtime";
-import Order "mo:core/Order";
 import Map "mo:core/Map";
+import Nat "mo:core/Nat";
+import Principal "mo:core/Principal";
+import Runtime "mo:core/Runtime";
+import Migration "migration";
+import MixinAuthorization "authorization/MixinAuthorization";
+import AccessControl "authorization/access-control";
+import MixinStorage "blob-storage/Mixin";
+import Storage "blob-storage/Storage";
+import Stripe "stripe/stripe";
+import OutCall "http-outcalls/outcall";
 
+(with migration = Migration.run)
 actor {
-  type Product = {
+  // Define Product type
+  public type Product = {
     id : Nat;
     name : Text;
-    price : Nat;
-    category : Text;
     brand : Text;
+    category : Text;
     description : Text;
+    price : Nat;
+    image : ?Storage.ExternalBlob;
   };
 
-  module Product {
-    public func compare(product1 : Product, product2 : Product) : Order.Order {
-      Nat.compare(product1.id, product2.id);
+  // Define UserProfile type
+  public type UserProfile = {
+    name : Text;
+  };
+
+  // Authorization component
+  let accessControlState = AccessControl.initState();
+  let storage = Map.empty<Nat, Product>();
+  let userProfiles = Map.empty<Principal, UserProfile>();
+  include MixinAuthorization(accessControlState);
+  // Mixin for blob storage
+  include MixinStorage();
+
+  // Stripe integration
+  var stripeConfiguration : ?Stripe.StripeConfiguration = null;
+
+  // User Profile Functions
+  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view profiles");
     };
+    userProfiles.get(caller);
   };
 
-  let productStore = Map.empty<Nat, Product>();
-  var currentId = 0;
+  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
+    userProfiles.get(user);
+  };
 
-  public shared ({ caller }) func addProduct(name : Text, price : Nat, category : Text, brand : Text, description : Text) : async () {
-    let id = currentId;
-    currentId += 1;
+  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
+    userProfiles.add(caller, profile);
+  };
 
+  // Product Management Functions
+  public shared ({ caller }) func addProduct(
+    name : Text,
+    brand : Text,
+    category : Text,
+    description : Text,
+    price : Nat,
+    image : ?Storage.ExternalBlob,
+  ) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can add products");
+    };
+
+    let id = storage.size();
     let product : Product = {
       id;
       name;
-      price;
-      category;
       brand;
+      category;
       description;
+      price;
+      image;
     };
 
-    productStore.add(id, product);
+    storage.add(id, product);
   };
 
-  public query ({ caller }) func getAllProducts() : async [Product] {
-    productStore.values().toArray().sort();
+  public shared ({ caller }) func updateProduct(
+    id : Nat,
+    name : Text,
+    brand : Text,
+    category : Text,
+    description : Text,
+    price : Nat,
+    image : ?Storage.ExternalBlob,
+  ) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can update products");
+    };
+
+    switch (storage.get(id)) {
+      case (null) { Runtime.trap("Product not found") };
+      case (?_) {
+        let updatedProduct : Product = {
+          id;
+          name;
+          brand;
+          category;
+          description;
+          price;
+          image;
+        };
+        storage.add(id, updatedProduct);
+      };
+    };
   };
 
-  public query ({ caller }) func getProductsByCategory(category : Text) : async [Product] {
+  public shared ({ caller }) func deleteProduct(id : Nat) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can delete products");
+    };
+
+    switch (storage.get(id)) {
+      case (null) { Runtime.trap("Product not found") };
+      case (?_) {
+        storage.remove(id);
+      };
+    };
+  };
+
+  // Public Query Functions (no authentication required)
+  public query func getAllProducts() : async [Product] {
+    storage.values().toArray();
+  };
+
+  public query func getProduct(id : Nat) : async Product {
+    switch (storage.get(id)) {
+      case (null) { Runtime.trap("Product not found") };
+      case (?product) { product };
+    };
+  };
+
+  public query func getProductsByCategory(category : Text) : async [Product] {
     let filtered = List.empty<Product>();
 
-    for ((_, product) in productStore.entries()) {
+    for ((_, product) in storage.entries()) {
       if (Text.equal(product.category, category)) {
         filtered.add(product);
       };
@@ -56,10 +157,43 @@ actor {
     filtered.toArray();
   };
 
-  public query ({ caller }) func getProduct(id : Nat) : async Product {
-    switch (productStore.get(id)) {
-      case (null) { Runtime.trap("Product not found") };
-      case (?product) { product };
+  // Stripe Configuration Functions (Admin-only)
+  public shared ({ caller }) func setStripeConfiguration(config : Stripe.StripeConfiguration) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    stripeConfiguration := ?config;
+  };
+
+  public query ({ caller }) func getStripeConfiguration() : async ?Stripe.StripeConfiguration {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can view payment configuration");
+    };
+    stripeConfiguration;
+  };
+
+  // EX2: Required Stripe Functions
+  public query func isStripeConfigured() : async Bool {
+    stripeConfiguration != null;
+  };
+
+  func getStripeConfigurationInternal() : Stripe.StripeConfiguration {
+    switch (stripeConfiguration) {
+      case (null) { Runtime.trap("Stripe needs to be first configured") };
+      case (?value) { value };
     };
   };
+
+  public func getStripeSessionStatus(sessionId : Text) : async Stripe.StripeSessionStatus {
+    await Stripe.getSessionStatus(getStripeConfigurationInternal(), sessionId, transform);
+  };
+
+  public shared ({ caller }) func createCheckoutSession(items : [Stripe.ShoppingItem], successUrl : Text, cancelUrl : Text) : async Text {
+    await Stripe.createCheckoutSession(getStripeConfigurationInternal(), caller, items, successUrl, cancelUrl, transform);
+  };
+
+  public query func transform(input : OutCall.TransformationInput) : async OutCall.TransformationOutput {
+    OutCall.transform(input);
+  };
 };
+
