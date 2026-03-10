@@ -12,21 +12,34 @@ import {
 } from "@tanstack/react-router";
 import {
   LayoutDashboard,
+  LogIn,
+  LogOut,
   Menu,
   RotateCcw,
   ShieldCheck,
+  ShoppingCart,
   Star,
   Truck,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { Product } from "./backend";
-import { useGetAllProducts, useIsAdmin } from "./hooks/useQueries";
+import CartDrawer from "./components/CartDrawer";
+import { CartProvider, useCart } from "./context/CartContext";
+import type { DisplayProduct } from "./context/CartContext";
+import { useInternetIdentity } from "./hooks/useInternetIdentity";
+import {
+  useAdminCount,
+  useClaimInitialAdmin,
+  useGetAllProducts,
+  useIsAdmin,
+} from "./hooks/useQueries";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 
-const HARDCODED_PRODUCTS = [
+const HARDCODED_PRODUCTS: DisplayProduct[] = [
   {
     id: 1n,
     name: "Classic Polo Shirt",
@@ -128,7 +141,13 @@ function scrollTo(href: string) {
 function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const { data: isAdmin } = useIsAdmin();
+  const { data: adminCount } = useAdminCount();
+  const { identity, login, clear, isLoggingIn } = useInternetIdentity();
+  const { mutate: claimAdmin } = useClaimInitialAdmin();
+  const { cartCount } = useCart();
+  const prevIdentityRef = useRef<typeof identity>(undefined);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -136,86 +155,62 @@ function Header() {
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
+  // Auto-claim admin when first user logs in and no admins exist
+  useEffect(() => {
+    const wasLoggedOut = !prevIdentityRef.current;
+    const isNowLoggedIn = !!identity;
+    prevIdentityRef.current = identity;
+
+    if (
+      wasLoggedOut &&
+      isNowLoggedIn &&
+      adminCount !== undefined &&
+      adminCount === 0n
+    ) {
+      claimAdmin();
+    }
+  }, [identity, adminCount, claimAdmin]);
+
   const handleNavClick = (href: string) => {
     setMobileOpen(false);
     scrollTo(href);
   };
 
+  const principal = identity?.getPrincipal().toString();
+  const shortPrincipal = principal
+    ? `${principal.slice(0, 5)}...${principal.slice(-3)}`
+    : null;
+
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
-          ? "bg-navy-deep/95 backdrop-blur-md shadow-luxury"
-          : "bg-navy-deep"
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-20">
-          <button
-            type="button"
-            className="flex-shrink-0 bg-transparent border-0 p-0 cursor-pointer"
-            onClick={() => handleNavClick("#home")}
-          >
-            <img
-              src="/assets/generated/ismael-express-logo-transparent.dim_400x120.png"
-              alt="Ismael Express"
-              className="h-12 w-auto object-contain"
-            />
-          </button>
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+          scrolled
+            ? "bg-navy-deep/95 backdrop-blur-md shadow-luxury"
+            : "bg-navy-deep"
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-20">
+            <button
+              type="button"
+              className="flex-shrink-0 bg-transparent border-0 p-0 cursor-pointer"
+              onClick={() => handleNavClick("#home")}
+            >
+              <img
+                src="/assets/generated/ismael-express-logo-transparent.dim_400x120.png"
+                alt="Ismael Express"
+                className="h-12 w-auto object-contain"
+              />
+            </button>
 
-          <nav className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                data-ocid={link.ocid}
-                className="nav-link font-sans text-sm font-medium tracking-widest uppercase text-foreground/70 hover:text-primary transition-colors"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleNavClick(link.href);
-                }}
-              >
-                {link.label}
-              </a>
-            ))}
-            {isAdmin && (
-              <Link
-                to="/admin"
-                data-ocid="nav.admin.link"
-                className="flex items-center gap-1.5 font-sans text-sm font-medium tracking-widest uppercase text-primary hover:text-gold-light transition-colors"
-              >
-                <LayoutDashboard size={14} />
-                Admin
-              </Link>
-            )}
-          </nav>
-
-          <button
-            type="button"
-            className="md:hidden text-foreground/80 hover:text-primary transition-colors"
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-navy-deep border-t border-border"
-          >
-            <nav className="flex flex-col px-6 py-4 gap-4">
+            <nav className="hidden md:flex items-center gap-6">
               {NAV_LINKS.map((link) => (
                 <a
                   key={link.label}
                   href={link.href}
                   data-ocid={link.ocid}
-                  className="font-sans text-sm font-medium tracking-widest uppercase text-foreground/70 hover:text-primary transition-colors py-2"
+                  className="nav-link font-sans text-sm font-medium tracking-widest uppercase text-foreground/70 hover:text-primary transition-colors"
                   onClick={(e) => {
                     e.preventDefault();
                     handleNavClick(link.href);
@@ -228,18 +223,141 @@ function Header() {
                 <Link
                   to="/admin"
                   data-ocid="nav.admin.link"
-                  className="flex items-center gap-1.5 font-sans text-sm font-medium tracking-widest uppercase text-primary py-2"
-                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-1.5 font-sans text-sm font-medium tracking-widest uppercase text-primary hover:text-gold-light transition-colors"
                 >
                   <LayoutDashboard size={14} />
                   Admin
                 </Link>
               )}
             </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </header>
+
+            <div className="flex items-center gap-3">
+              {/* Cart button */}
+              <button
+                type="button"
+                data-ocid="nav.cart_button"
+                onClick={() => setCartOpen(true)}
+                className="relative text-foreground/70 hover:text-primary transition-colors p-1"
+                aria-label="Open cart"
+              >
+                <ShoppingCart size={22} />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                    {cartCount > 9 ? "9+" : cartCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Auth button */}
+              {identity ? (
+                <div className="hidden md:flex items-center gap-2">
+                  <span className="font-sans text-xs text-muted-foreground tracking-wide">
+                    {shortPrincipal}
+                  </span>
+                  <button
+                    type="button"
+                    data-ocid="nav.logout_button"
+                    onClick={() => clear()}
+                    className="flex items-center gap-1.5 font-sans text-xs tracking-widest uppercase text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <LogOut size={14} />
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  data-ocid="nav.login_button"
+                  onClick={() => login()}
+                  disabled={isLoggingIn}
+                  className="hidden md:flex items-center gap-1.5 bg-transparent border border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground font-sans text-xs tracking-widest uppercase transition-all duration-200 h-8 px-3"
+                >
+                  <LogIn size={13} />
+                  {isLoggingIn ? "Signing in..." : "Sign In"}
+                </Button>
+              )}
+
+              <button
+                type="button"
+                className="md:hidden text-foreground/80 hover:text-primary transition-colors"
+                onClick={() => setMobileOpen((v) => !v)}
+                aria-label="Toggle menu"
+              >
+                {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden bg-navy-deep border-t border-border"
+            >
+              <nav className="flex flex-col px-6 py-4 gap-4">
+                {NAV_LINKS.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    data-ocid={link.ocid}
+                    className="font-sans text-sm font-medium tracking-widest uppercase text-foreground/70 hover:text-primary transition-colors py-2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleNavClick(link.href);
+                    }}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    data-ocid="nav.admin.link"
+                    className="flex items-center gap-1.5 font-sans text-sm font-medium tracking-widest uppercase text-primary py-2"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <LayoutDashboard size={14} />
+                    Admin
+                  </Link>
+                )}
+                {identity ? (
+                  <button
+                    type="button"
+                    data-ocid="nav.logout_button"
+                    onClick={() => {
+                      clear();
+                      setMobileOpen(false);
+                    }}
+                    className="flex items-center gap-1.5 font-sans text-sm font-medium tracking-widest uppercase text-muted-foreground hover:text-destructive transition-colors py-2 text-left"
+                  >
+                    <LogOut size={14} />
+                    Sign Out ({shortPrincipal})
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    data-ocid="nav.login_button"
+                    onClick={() => {
+                      login();
+                      setMobileOpen(false);
+                    }}
+                    className="flex items-center gap-1.5 font-sans text-sm font-medium tracking-widest uppercase text-primary py-2"
+                  >
+                    <LogIn size={14} />
+                    Sign In
+                  </button>
+                )}
+              </nav>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
+
+      <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
+    </>
   );
 }
 
@@ -316,25 +434,19 @@ function Hero() {
   );
 }
 
-type DisplayProduct = {
-  id: bigint;
-  name: string;
-  brand: string;
-  price: bigint;
-  category: string;
-  description: string;
-  imageUrl?: string;
-  image?: Product["image"];
-};
-
 function ProductCard({
   product,
   index,
 }: { product: DisplayProduct; index: number }) {
   const [imgError, setImgError] = useState(false);
+  const { addToCart } = useCart();
 
-  const imageSrc =
-    product.imageUrl || (product.image ? product.image.getDirectURL() : null);
+  const imageSrc = product.imageUrl ?? null;
+
+  const handleAddToCart = () => {
+    addToCart(product);
+    toast.success(`${product.name} added to cart`);
+  };
 
   return (
     <motion.div
@@ -383,9 +495,12 @@ function ProductCard({
           <Button
             variant="outline"
             size="sm"
+            data-ocid={`products.add_to_cart_button.${index}`}
+            onClick={handleAddToCart}
             className="border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground font-sans text-xs tracking-widest uppercase transition-all duration-200"
           >
-            View Details
+            <ShoppingCart size={13} className="mr-1.5" />
+            Add to Cart
           </Button>
         </div>
       </div>
@@ -398,14 +513,13 @@ function ProductsSection() {
 
   const products: DisplayProduct[] =
     backendProducts && backendProducts.length > 0
-      ? backendProducts.map((p) => ({
+      ? backendProducts.map((p: Product) => ({
           id: p.id,
           name: p.name,
           brand: p.brand,
           price: p.price,
           category: p.category,
           description: p.description,
-          image: p.image,
         }))
       : HARDCODED_PRODUCTS;
 
@@ -606,6 +720,30 @@ function ContactFooter() {
   );
 }
 
+function AdminFloatingButton() {
+  const { data: isAdmin } = useIsAdmin();
+
+  if (!isAdmin) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.3 }}
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+    >
+      <Link
+        to="/admin"
+        data-ocid="admin.dashboard_button"
+        className="flex items-center gap-2.5 bg-primary text-primary-foreground font-sans text-sm font-semibold tracking-widest uppercase px-6 py-3 rounded-full shadow-[0_4px_24px_oklch(0.74_0.12_75_/_0.45)] hover:bg-gold-light hover:shadow-[0_6px_32px_oklch(0.74_0.12_75_/_0.6)] transition-all duration-300"
+      >
+        <LayoutDashboard size={16} />
+        Admin Dashboard
+      </Link>
+    </motion.div>
+  );
+}
+
 function ShopPage() {
   return (
     <div className="min-h-screen bg-background">
@@ -617,6 +755,7 @@ function ShopPage() {
         <TrustSection />
       </main>
       <ContactFooter />
+      <AdminFloatingButton />
     </div>
   );
 }
@@ -659,5 +798,9 @@ declare module "@tanstack/react-router" {
 }
 
 export default function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <CartProvider>
+      <RouterProvider router={router} />
+    </CartProvider>
+  );
 }

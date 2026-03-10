@@ -75,8 +75,10 @@ export enum UserRole {
 export interface backendInterface {
     addProduct(name: string, brand: string, category: string, description: string, price: bigint, image: ExternalBlob | null): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    claimInitialAdmin(): Promise<boolean>;
     createCheckoutSession(items: Array<ShoppingItem>, successUrl: string, cancelUrl: string): Promise<string>;
     deleteProduct(id: bigint): Promise<void>;
+    getAdminCount(): Promise<bigint>;
     getAllProducts(): Promise<Array<Product>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;

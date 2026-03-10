@@ -4,7 +4,7 @@ import Map "mo:core/Map";
 import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
-import Migration "migration";
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import MixinStorage "blob-storage/Mixin";
@@ -12,7 +12,7 @@ import Storage "blob-storage/Storage";
 import Stripe "stripe/stripe";
 import OutCall "http-outcalls/outcall";
 
-(with migration = Migration.run)
+
 actor {
   // Define Product type
   public type Product = {
@@ -40,6 +40,28 @@ actor {
 
   // Stripe integration
   var stripeConfiguration : ?Stripe.StripeConfiguration = null;
+
+  // Bootstrap: first caller becomes admin when no admin exists yet
+  public shared ({ caller }) func claimInitialAdmin() : async Bool {
+    if (caller.isAnonymous()) {
+      return false;
+    };
+    if (accessControlState.adminAssigned) {
+      return false;
+    };
+    accessControlState.userRoles.add(caller, #admin);
+    accessControlState.adminAssigned := true;
+    true;
+  };
+
+  // Returns the number of admins (0 means no admin claimed yet)
+  public query func getAdminCount() : async Nat {
+    var count = 0;
+    for ((_, role) in accessControlState.userRoles.entries()) {
+      if (role == #admin) { count += 1 };
+    };
+    count;
+  };
 
   // User Profile Functions
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
@@ -196,4 +218,3 @@ actor {
     OutCall.transform(input);
   };
 };
-

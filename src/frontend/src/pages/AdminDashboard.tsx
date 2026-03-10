@@ -40,6 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Link } from "@tanstack/react-router";
 import {
   CreditCard,
+  Download,
   Loader2,
   LogOut,
   Package,
@@ -59,6 +60,7 @@ import {
   useDeleteProduct,
   useGetAllProducts,
   useIsAdmin,
+  useSeedProducts,
   useStripeSessionStatus,
   useUpdateProduct,
 } from "../hooks/useQueries";
@@ -352,6 +354,7 @@ function ProductFormDialog({
 function ProductsTab() {
   const { data: products, isLoading, isError } = useGetAllProducts();
   const deleteProduct = useDeleteProduct();
+  const seedProducts = useSeedProducts();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
@@ -408,12 +411,27 @@ function ProductsTab() {
       ) : !products || products.length === 0 ? (
         <div
           data-ocid="admin.products.empty_state"
-          className="border border-dashed border-border px-4 py-12 text-center"
+          className="border border-dashed border-border px-4 py-12 text-center space-y-4"
         >
-          <Package className="text-muted-foreground mx-auto mb-3" size={32} />
+          <Package className="text-muted-foreground mx-auto" size={32} />
           <p className="font-sans text-muted-foreground text-sm">
-            No products yet. Add your first product.
+            No products yet. Add your first product above, or import the sample
+            catalogue.
           </p>
+          <Button
+            data-ocid="admin.products.seed_button"
+            variant="outline"
+            onClick={() => seedProducts.mutate()}
+            disabled={seedProducts.isPending}
+            className="border-border text-muted-foreground hover:text-foreground hover:border-primary/50 font-sans text-xs tracking-widest uppercase gap-2"
+          >
+            {seedProducts.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download size={16} />
+            )}
+            {seedProducts.isPending ? "Importing..." : "Import Sample Products"}
+          </Button>
         </div>
       ) : (
         <div

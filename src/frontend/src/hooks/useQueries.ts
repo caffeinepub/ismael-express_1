@@ -17,6 +17,37 @@ export function useIsAdmin() {
   });
 }
 
+export function useAdminCount() {
+  const { actor, isFetching } = useActor();
+  return useQuery<bigint>({
+    queryKey: ["adminCount"],
+    queryFn: async () => {
+      if (!actor) return 0n;
+      return (actor as any).getAdminCount() as Promise<bigint>;
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 30_000,
+  });
+}
+
+export function useClaimInitialAdmin() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Not connected");
+      return (actor as any).claimInitialAdmin() as Promise<boolean>;
+    },
+    onSuccess: (success) => {
+      if (success) {
+        toast.success("You are now admin!");
+        queryClient.invalidateQueries({ queryKey: ["isAdmin"] });
+        queryClient.invalidateQueries({ queryKey: ["adminCount"] });
+      }
+    },
+  });
+}
+
 export function useGetAllProducts() {
   const { actor, isFetching } = useActor();
   return useQuery<Product[]>({
@@ -132,5 +163,76 @@ export function useStripeSessionStatus(sessionId: string | null) {
       return actor.getStripeSessionStatus(sessionId);
     },
     enabled: !!actor && !isFetching && !!sessionId,
+  });
+}
+
+export function useSeedProducts() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Not connected");
+      const SAMPLE_PRODUCTS = [
+        {
+          name: "Polo Shirt",
+          brand: "Ralph Lauren",
+          category: "Shirts",
+          description: "Classic fit polo shirt in premium cotton piqué.",
+          price: 7900,
+        },
+        {
+          name: "Classic Suit",
+          brand: "Jos. A. Bank",
+          category: "Suits",
+          description: "Tailored two-piece suit in fine wool blend.",
+          price: 39900,
+        },
+        {
+          name: "Dress Shirt",
+          brand: "Ralph Lauren",
+          category: "Shirts",
+          description: "Crisp poplin dress shirt with spread collar.",
+          price: 12900,
+        },
+        {
+          name: "Silk Tie",
+          brand: "Jos. A. Bank",
+          category: "Accessories",
+          description: "Hand-finished 100% silk tie.",
+          price: 5900,
+        },
+        {
+          name: "Tech Fleece Jogger",
+          brand: "Nike",
+          category: "Accessories",
+          description: "Nike Tech Fleece jogger with tapered fit.",
+          price: 13000,
+        },
+        {
+          name: "Ultraboost Sneaker",
+          brand: "Adidas",
+          category: "Shoes",
+          description: "Adidas Ultraboost with responsive Boost cushioning.",
+          price: 18000,
+        },
+      ];
+      for (const p of SAMPLE_PRODUCTS) {
+        await actor.addProduct(
+          p.name,
+          p.brand,
+          p.category,
+          p.description,
+          BigInt(p.price),
+          null,
+        );
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Sample products imported successfully");
+    },
+    onError: () => {
+      toast.error("Failed to import sample products");
+    },
   });
 }
