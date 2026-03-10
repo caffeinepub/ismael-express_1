@@ -111,7 +111,6 @@ const NAV_LINKS = [
   { label: "Suits", href: "#products", ocid: "nav.suits.link" },
   { label: "Shirts", href: "#products", ocid: "nav.shirts.link" },
   { label: "Accessories", href: "#products", ocid: "nav.accessories.link" },
-  { label: "Contact", href: "#contact", ocid: "nav.contact.link" },
 ];
 
 const TRUST_ITEMS = [
@@ -652,89 +651,6 @@ function TrustSection() {
   );
 }
 
-function ContactFooter() {
-  const { data: brands } = useGetAllBrands();
-
-  const brandLine =
-    brands && brands.length > 0
-      ? brands.map((b) => b.name).join(", ")
-      : "Ralph Lauren, Jos. A. Bank, Nike, and Adidas";
-
-  return (
-    <footer
-      id="contact"
-      data-ocid="contact.section"
-      className="bg-navy-deep border-t border-border"
-    >
-      <div className="max-w-7xl mx-auto px-4 py-16 grid grid-cols-1 md:grid-cols-3 gap-10">
-        <div>
-          <img
-            src="/assets/generated/ismael-express-logo-transparent.dim_400x120.png"
-            alt="Ismael Express"
-            className="h-10 w-auto object-contain mb-4"
-          />
-          <p className="font-sans text-muted-foreground text-sm leading-relaxed">
-            The premier destination for authentic {brandLine} menswear.
-          </p>
-        </div>
-
-        <div>
-          <h4 className="font-display text-foreground text-lg mb-4">
-            Contact Us
-          </h4>
-          <ul className="space-y-2 font-sans text-muted-foreground text-sm">
-            <li>📍 123 Fashion Avenue, New York, NY 10001</li>
-            <li>📞 (212) 555-0192</li>
-            <li>✉️ info@ismaelexpress.com</li>
-            <li>🕐 Mon–Sat: 10AM – 8PM</li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 className="font-display text-foreground text-lg mb-4">
-            Quick Links
-          </h4>
-          <ul className="space-y-2">
-            {NAV_LINKS.map((link) => (
-              <li key={link.label}>
-                <a
-                  href={link.href}
-                  className="font-sans text-muted-foreground text-sm hover:text-primary transition-colors"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    scrollTo(link.href);
-                  }}
-                >
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <div className="border-t border-border">
-        <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="font-sans text-muted-foreground text-xs">
-            © {new Date().getFullYear()} Ismael Express. All rights reserved.
-          </p>
-          <p className="font-sans text-muted-foreground text-xs">
-            Built with ❤️ using{" "}
-            <a
-              href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              caffeine.ai
-            </a>
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
 function AdminFloatingButton() {
   const { data: isAdmin } = useIsAdmin();
 
@@ -769,7 +685,13 @@ function ShopPage() {
         <ProductsSection />
         <TrustSection />
       </main>
-      <ContactFooter />
+      <footer className="bg-navy-deep border-t border-border">
+        <div className="max-w-7xl mx-auto px-4 py-5 flex items-center justify-center">
+          <p className="font-sans text-muted-foreground text-xs">
+            © {new Date().getFullYear()} Ismael Express. All rights reserved.
+          </p>
+        </div>
+      </footer>
       <AdminFloatingButton />
     </div>
   );
