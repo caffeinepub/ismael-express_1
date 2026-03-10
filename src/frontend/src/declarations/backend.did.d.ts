@@ -10,6 +10,7 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface Brand { 'id' : bigint, 'name' : string }
 export type ExternalBlob = Uint8Array;
 export interface Product {
   'id' : bigint,
@@ -82,16 +83,21 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'addBrand' : ActorMethod<[string], undefined>,
   'addProduct' : ActorMethod<
     [string, string, string, string, bigint, [] | [ExternalBlob]],
     undefined
   >,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'claimInitialAdmin' : ActorMethod<[], boolean>,
   'createCheckoutSession' : ActorMethod<
     [Array<ShoppingItem>, string, string],
     string
   >,
+  'deleteBrand' : ActorMethod<[bigint], undefined>,
   'deleteProduct' : ActorMethod<[bigint], undefined>,
+  'getAdminCount' : ActorMethod<[], bigint>,
+  'getAllBrands' : ActorMethod<[], Array<Brand>>,
   'getAllProducts' : ActorMethod<[], Array<Product>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
@@ -105,6 +111,7 @@ export interface _SERVICE {
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
+  'updateBrand' : ActorMethod<[bigint, string], undefined>,
   'updateProduct' : ActorMethod<
     [bigint, string, string, string, string, bigint, [] | [ExternalBlob]],
     undefined

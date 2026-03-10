@@ -32,6 +32,7 @@ export const ShoppingItem = IDL.Record({
   'priceInCents' : IDL.Nat,
   'productDescription' : IDL.Text,
 });
+export const Brand = IDL.Record({ 'id' : IDL.Nat, 'name' : IDL.Text });
 export const Product = IDL.Record({
   'id' : IDL.Nat,
   'name' : IDL.Text,
@@ -100,18 +101,23 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'addBrand' : IDL.Func([IDL.Text], [], []),
   'addProduct' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Nat, IDL.Opt(ExternalBlob)],
       [],
       [],
     ),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'claimInitialAdmin' : IDL.Func([], [IDL.Bool], []),
   'createCheckoutSession' : IDL.Func(
       [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
       [IDL.Text],
       [],
     ),
+  'deleteBrand' : IDL.Func([IDL.Nat], [], []),
   'deleteProduct' : IDL.Func([IDL.Nat], [], []),
+  'getAdminCount' : IDL.Func([], [IDL.Nat], ['query']),
+  'getAllBrands' : IDL.Func([], [IDL.Vec(Brand)], ['query']),
   'getAllProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -137,6 +143,7 @@ export const idlService = IDL.Service({
       [TransformationOutput],
       ['query'],
     ),
+  'updateBrand' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'updateProduct' : IDL.Func(
       [
         IDL.Nat,
@@ -179,6 +186,7 @@ export const idlFactory = ({ IDL }) => {
     'priceInCents' : IDL.Nat,
     'productDescription' : IDL.Text,
   });
+  const Brand = IDL.Record({ 'id' : IDL.Nat, 'name' : IDL.Text });
   const Product = IDL.Record({
     'id' : IDL.Nat,
     'name' : IDL.Text,
@@ -244,6 +252,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'addBrand' : IDL.Func([IDL.Text], [], []),
     'addProduct' : IDL.Func(
         [
           IDL.Text,
@@ -257,12 +266,16 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'claimInitialAdmin' : IDL.Func([], [IDL.Bool], []),
     'createCheckoutSession' : IDL.Func(
         [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
         [IDL.Text],
         [],
       ),
+    'deleteBrand' : IDL.Func([IDL.Nat], [], []),
     'deleteProduct' : IDL.Func([IDL.Nat], [], []),
+    'getAdminCount' : IDL.Func([], [IDL.Nat], ['query']),
+    'getAllBrands' : IDL.Func([], [IDL.Vec(Brand)], ['query']),
     'getAllProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -292,6 +305,7 @@ export const idlFactory = ({ IDL }) => {
         [TransformationOutput],
         ['query'],
       ),
+    'updateBrand' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'updateProduct' : IDL.Func(
         [
           IDL.Nat,

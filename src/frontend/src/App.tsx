@@ -33,11 +33,14 @@ import { useInternetIdentity } from "./hooks/useInternetIdentity";
 import {
   useAdminCount,
   useClaimInitialAdmin,
+  useGetAllBrands,
   useGetAllProducts,
   useIsAdmin,
 } from "./hooks/useQueries";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
+
+const FALLBACK_BRANDS = "Ralph Lauren | Jos. A. Bank | Nike | Adidas";
 
 const HARDCODED_PRODUCTS: DisplayProduct[] = [
   {
@@ -362,6 +365,13 @@ function Header() {
 }
 
 function Hero() {
+  const { data: brands } = useGetAllBrands();
+
+  const brandLine =
+    brands && brands.length > 0
+      ? brands.map((b) => b.name).join(" \u00a0|\u00a0 ")
+      : FALLBACK_BRANDS;
+
   return (
     <section
       id="home"
@@ -404,8 +414,7 @@ function Hero() {
           </h1>
 
           <p className="font-serif text-lg sm:text-xl text-foreground/60 mb-4 italic tracking-wide">
-            Ralph Lauren &nbsp;|&nbsp; Jos. A. Bank &nbsp;|&nbsp; Nike
-            &nbsp;|&nbsp; Adidas
+            {brandLine}
           </p>
 
           <p className="font-sans text-foreground/50 text-sm tracking-widest uppercase mb-10">
@@ -644,6 +653,13 @@ function TrustSection() {
 }
 
 function ContactFooter() {
+  const { data: brands } = useGetAllBrands();
+
+  const brandLine =
+    brands && brands.length > 0
+      ? brands.map((b) => b.name).join(", ")
+      : "Ralph Lauren, Jos. A. Bank, Nike, and Adidas";
+
   return (
     <footer
       id="contact"
@@ -658,8 +674,7 @@ function ContactFooter() {
             className="h-10 w-auto object-contain mb-4"
           />
           <p className="font-sans text-muted-foreground text-sm leading-relaxed">
-            The premier destination for authentic Ralph Lauren, Jos. A. Bank,
-            Nike, and Adidas menswear.
+            The premier destination for authentic {brandLine} menswear.
           </p>
         </div>
 

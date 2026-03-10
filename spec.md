@@ -1,28 +1,30 @@
 # Ismael Express
 
 ## Current State
-A luxury menswear shop frontend with hardcoded products (Ralph Lauren, Jos. A. Bank, Nike, Adidas). Backend has basic product CRUD (addProduct, getAllProducts, getProduct, getProductsByCategory) but no auth or image storage. No admin area exists.
+The app is a luxury menswear e-commerce site with an admin dashboard featuring Products and Payments tabs. Brands are hardcoded as a static array (`BRANDS`) in the frontend — both in the admin product form and the shop's hero/footer text. There is no backend brand management.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Admin-only dashboard accessible via `/admin` route
-- Admin login via Internet Identity
-- Product management: add, edit, delete products with image upload
-- Image storage for product photos using blob-storage component
-- Payment overview panel for admins to view Stripe transactions/orders
-- Role-based access: only the canister owner/admin can access dashboard
+- Backend: `Brand` type with `id` and `name` fields
+- Backend: `addBrand`, `updateBrand`, `deleteBrand`, `getAllBrands` functions (admin-only mutations, public query)
+- Admin Dashboard: "Brands" tab in the sidebar nav
+- Admin Brands tab: table listing all brands with edit/delete actions, "New Brand" button, add/edit dialog, delete confirmation
+- Frontend hooks: `useGetAllBrands`, `useAddBrand`, `useUpdateBrand`, `useDeleteBrand`
 
 ### Modify
-- Backend: add authorization (admin role), update product model to include imageUrl, add updateProduct and deleteProduct, integrate blob-storage for images
-- Frontend: add Admin link in nav (visible to admins), add /admin route with protected dashboard, wire products to backend instead of hardcoded list
+- Product form brand `<Select>` to use dynamic brands from `getAllBrands` instead of hardcoded `BRANDS` array
+- Hero section brand line to use dynamic brands from backend
+- Footer contact copy to reference dynamic brands
+- Admin dashboard header title to reflect active tab (add "Brands" case)
 
 ### Remove
-- Hardcoded product list from frontend (replace with backend data)
+- Hardcoded `BRANDS` constant in AdminDashboard
 
 ## Implementation Plan
-1. Select components: authorization, blob-storage, stripe
-2. Generate Motoko backend with admin role, product CRUD with imageUrl, payment viewing
-3. Build frontend admin dashboard with: login, product table with edit/delete/add, image uploader, payments tab
-4. Protect admin route — redirect non-admins
-5. Wire public shop to fetch products from backend
+1. Update `main.mo` to add Brand type, brand storage, and CRUD functions
+2. Re-generate `backend.d.ts` types
+3. Add brand query hooks to `useQueries.ts`
+4. Add `BrandsTab` component to `AdminDashboard.tsx` and wire up the sidebar tab
+5. Update `ProductFormDialog` to fetch brands dynamically
+6. Update `Hero` and `ContactFooter` in `App.tsx` to show dynamic brands from backend (with fallback)

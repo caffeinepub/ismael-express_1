@@ -22,6 +22,10 @@ export interface TransformationOutput {
     body: Uint8Array;
     headers: Array<http_header>;
 }
+export interface Brand {
+    id: bigint;
+    name: string;
+}
 export interface http_header {
     value: string;
     name: string;
@@ -73,12 +77,15 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
+    addBrand(name: string): Promise<void>;
     addProduct(name: string, brand: string, category: string, description: string, price: bigint, image: ExternalBlob | null): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     claimInitialAdmin(): Promise<boolean>;
     createCheckoutSession(items: Array<ShoppingItem>, successUrl: string, cancelUrl: string): Promise<string>;
+    deleteBrand(id: bigint): Promise<void>;
     deleteProduct(id: bigint): Promise<void>;
     getAdminCount(): Promise<bigint>;
+    getAllBrands(): Promise<Array<Brand>>;
     getAllProducts(): Promise<Array<Product>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
@@ -92,5 +99,6 @@ export interface backendInterface {
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
+    updateBrand(id: bigint, name: string): Promise<void>;
     updateProduct(id: bigint, name: string, brand: string, category: string, description: string, price: bigint, image: ExternalBlob | null): Promise<void>;
 }

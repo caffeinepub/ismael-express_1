@@ -104,6 +104,10 @@ export interface _CaffeineStorageCreateCertificateResult {
     method: string;
     blob_hash: string;
 }
+export interface Brand {
+    id: bigint;
+    name: string;
+}
 export interface http_header {
     value: string;
     name: string;
@@ -166,10 +170,15 @@ export interface backendInterface {
     _caffeineStorageRefillCashier(refillInformation: _CaffeineStorageRefillInformation | null): Promise<_CaffeineStorageRefillResult>;
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
+    addBrand(name: string): Promise<void>;
     addProduct(name: string, brand: string, category: string, description: string, price: bigint, image: ExternalBlob | null): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    claimInitialAdmin(): Promise<boolean>;
     createCheckoutSession(items: Array<ShoppingItem>, successUrl: string, cancelUrl: string): Promise<string>;
+    deleteBrand(id: bigint): Promise<void>;
     deleteProduct(id: bigint): Promise<void>;
+    getAdminCount(): Promise<bigint>;
+    getAllBrands(): Promise<Array<Brand>>;
     getAllProducts(): Promise<Array<Product>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
@@ -183,6 +192,7 @@ export interface backendInterface {
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
+    updateBrand(id: bigint, name: string): Promise<void>;
     updateProduct(id: bigint, name: string, brand: string, category: string, description: string, price: bigint, image: ExternalBlob | null): Promise<void>;
 }
 import type { ExternalBlob as _ExternalBlob, Product as _Product, StripeConfiguration as _StripeConfiguration, StripeSessionStatus as _StripeSessionStatus, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
@@ -286,6 +296,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async addBrand(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addBrand(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addBrand(arg0);
+            return result;
+        }
+    }
     async addProduct(arg0: string, arg1: string, arg2: string, arg3: string, arg4: bigint, arg5: ExternalBlob | null): Promise<void> {
         if (this.processError) {
             try {
@@ -314,6 +338,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async claimInitialAdmin(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.claimInitialAdmin();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.claimInitialAdmin();
+            return result;
+        }
+    }
     async createCheckoutSession(arg0: Array<ShoppingItem>, arg1: string, arg2: string): Promise<string> {
         if (this.processError) {
             try {
@@ -328,6 +366,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async deleteBrand(arg0: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteBrand(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteBrand(arg0);
+            return result;
+        }
+    }
     async deleteProduct(arg0: bigint): Promise<void> {
         if (this.processError) {
             try {
@@ -339,6 +391,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.deleteProduct(arg0);
+            return result;
+        }
+    }
+    async getAdminCount(): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAdminCount();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAdminCount();
+            return result;
+        }
+    }
+    async getAllBrands(): Promise<Array<Brand>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllBrands();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllBrands();
             return result;
         }
     }
@@ -521,6 +601,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.transform(arg0);
+            return result;
+        }
+    }
+    async updateBrand(arg0: bigint, arg1: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateBrand(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateBrand(arg0, arg1);
             return result;
         }
     }

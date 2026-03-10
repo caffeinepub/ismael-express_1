@@ -48,6 +48,7 @@ import {
   Plus,
   Search,
   ShieldCheck,
+  Tag,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -56,14 +57,19 @@ import { useRef, useState } from "react";
 import type { Product } from "../backend";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
+  useAddBrand,
   useAddProduct,
+  useDeleteBrand,
   useDeleteProduct,
+  useGetAllBrands,
   useGetAllProducts,
   useIsAdmin,
   useSeedProducts,
   useStripeSessionStatus,
+  useUpdateBrand,
   useUpdateProduct,
 } from "../hooks/useQueries";
+import type { Brand } from "../hooks/useQueries";
 
 type ProductFormData = {
   name: string;
@@ -84,7 +90,13 @@ const EMPTY_FORM: ProductFormData = {
 };
 
 const CATEGORIES = ["Suits", "Shirts", "Accessories", "Shoes", "Outerwear"];
-const BRANDS = ["Ralph Lauren", "Jos. A. Bank", "Nike", "Adidas", "Other"];
+const DEFAULT_BRANDS = [
+  "Ralph Lauren",
+  "Jos. A. Bank",
+  "Nike",
+  "Adidas",
+  "Other",
+];
 
 const HOW_IT_WORKS = [
   "Customers initiate checkout via the shop — a Stripe session is created.",
@@ -118,6 +130,12 @@ function ProductFormDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addProduct = useAddProduct();
   const updateProduct = useUpdateProduct();
+  const { data: brandsData, isLoading: brandsLoading } = useGetAllBrands();
+
+  const brandOptions =
+    brandsData && brandsData.length > 0
+      ? brandsData.map((b) => b.name)
+      : DEFAULT_BRANDS;
 
   const isPending = addProduct.isPending || updateProduct.isPending;
 
@@ -198,15 +216,20 @@ function ProductFormDialog({
               <Select
                 value={form.brand}
                 onValueChange={(v) => setForm((p) => ({ ...p, brand: v }))}
+                disabled={brandsLoading}
               >
                 <SelectTrigger
                   data-ocid="admin.product.brand.select"
                   className="bg-background border-border"
                 >
-                  <SelectValue placeholder="Select brand" />
+                  <SelectValue
+                    placeholder={
+                      brandsLoading ? "Loading brands..." : "Select brand"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
-                  {BRANDS.map((b) => (
+                  {brandOptions.map((b) => (
                     <SelectItem key={b} value={b}>
                       {b}
                     </SelectItem>
@@ -585,6 +608,263 @@ function ProductsTab() {
   );
 }
 
+function BrandsTab() {
+  const { data: brands, isLoading, isError } = useGetAllBrands();
+  const addBrand = useAddBrand();
+  const updateBrand = useUpdateBrand();
+  const deleteBrand = useDeleteBrand();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editBrand, setEditBrand] = useState<Brand | null>(null);
+  const [brandName, setBrandName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<Brand | null>(null);
+
+  const handleNew = () => {
+    setEditBrand(null);
+    setBrandName("");
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (brand: Brand) => {
+    setEditBrand(brand);
+    setBrandName(brand.name);
+    setDialogOpen(true);
+  };
+
+  const handleClose = () => {
+    setDialogOpen(false);
+    setEditBrand(null);
+    setBrandName("");
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!brandName.trim()) return;
+    if (editBrand) {
+      await updateBrand.mutateAsync({
+        id: editBrand.id,
+        name: brandName.trim(),
+      });
+    } else {
+      await addBrand.mutateAsync(brandName.trim());
+    }
+    handleClose();
+  };
+
+  const isPending = addBrand.isPending || updateBrand.isPending;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-display text-2xl text-foreground">Brands</h2>
+          <p className="font-sans text-muted-foreground text-sm mt-0.5">
+            {brands?.length ?? 0} brands in catalogue
+          </p>
+        </div>
+        <Button
+          data-ocid="admin.brands.open_modal_button"
+          onClick={handleNew}
+          className="bg-primary text-primary-foreground hover:bg-gold-light font-sans text-xs tracking-widest uppercase gap-2"
+        >
+          <Plus size={16} />
+          New Brand
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div data-ocid="admin.brands.loading_state" className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-16 w-full bg-muted" />
+          ))}
+        </div>
+      ) : isError ? (
+        <div
+          data-ocid="admin.brands.error_state"
+          className="border border-destructive/30 bg-destructive/10 px-4 py-6 text-center"
+        >
+          <p className="font-sans text-destructive-foreground text-sm">
+            Failed to load brands. Please try again.
+          </p>
+        </div>
+      ) : !brands || brands.length === 0 ? (
+        <div
+          data-ocid="admin.brands.empty_state"
+          className="border border-dashed border-border px-4 py-12 text-center space-y-4"
+        >
+          <Tag className="text-muted-foreground mx-auto" size={32} />
+          <p className="font-sans text-muted-foreground text-sm">
+            No brands yet. Add your first brand above.
+          </p>
+          <p className="font-sans text-muted-foreground/60 text-xs">
+            Brands added here will appear in the product form and across the
+            storefront.
+          </p>
+        </div>
+      ) : (
+        <div
+          data-ocid="admin.brands.table"
+          className="border border-border overflow-hidden"
+        >
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="font-sans text-xs tracking-widest uppercase text-muted-foreground">
+                  Brand Name
+                </TableHead>
+                <TableHead className="font-sans text-xs tracking-widest uppercase text-muted-foreground text-right">
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {brands.map((brand, i) => (
+                <TableRow
+                  key={brand.id.toString()}
+                  data-ocid={`admin.brands.row.${i + 1}`}
+                  className="border-border hover:bg-muted/30"
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-primary/10 border border-primary/20 flex items-center justify-center">
+                        <Tag size={14} className="text-primary" />
+                      </div>
+                      <span className="font-sans text-sm text-foreground font-medium">
+                        {brand.name}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        data-ocid={`admin.brands.edit_button.${i + 1}`}
+                        onClick={() => handleEdit(brand)}
+                        className="border-border h-8 w-8 p-0 hover:border-primary/50"
+                      >
+                        <Pencil size={14} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        data-ocid={`admin.brands.delete_button.${i + 1}`}
+                        onClick={() => setDeleteTarget(brand)}
+                        className="border-border h-8 w-8 p-0 hover:border-destructive/50 hover:text-destructive"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(v) => !v && handleClose()}>
+        <DialogContent
+          data-ocid="admin.brand.dialog"
+          className="bg-card border-border max-w-sm"
+        >
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl text-foreground">
+              {editBrand ? "Edit Brand" : "New Brand"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="font-sans text-xs tracking-widest uppercase text-muted-foreground">
+                Brand Name
+              </Label>
+              <Input
+                data-ocid="admin.brand.name.input"
+                value={brandName}
+                onChange={(e) => setBrandName(e.target.value)}
+                required
+                autoFocus
+                className="bg-background border-border"
+                placeholder="e.g. Ralph Lauren"
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                data-ocid="admin.brand.cancel_button"
+                onClick={handleClose}
+                className="border-border font-sans text-xs tracking-widest uppercase"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                data-ocid="admin.brand.save_button"
+                disabled={isPending || !brandName.trim()}
+                className="bg-primary text-primary-foreground hover:bg-gold-light font-sans text-xs tracking-widest uppercase"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                  </>
+                ) : editBrand ? (
+                  "Update Brand"
+                ) : (
+                  "Add Brand"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(v) => !v && setDeleteTarget(null)}
+      >
+        <AlertDialogContent
+          data-ocid="admin.brand.delete.dialog"
+          className="bg-card border-border"
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display text-xl text-foreground">
+              Delete Brand
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-sans text-muted-foreground">
+              Are you sure you want to delete{" "}
+              <strong className="text-foreground">{deleteTarget?.name}</strong>?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              data-ocid="admin.brand.delete.cancel_button"
+              className="border-border font-sans text-xs tracking-widest uppercase"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-ocid="admin.brand.delete.confirm_button"
+              onClick={() => {
+                if (deleteTarget) {
+                  deleteBrand.mutate(deleteTarget.id);
+                  setDeleteTarget(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-sans text-xs tracking-widest uppercase"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
 function PaymentsTab() {
   const [sessionId, setSessionId] = useState("");
   const [lookupId, setLookupId] = useState<string | null>(null);
@@ -790,6 +1070,13 @@ export default function AdminDashboard() {
 
   const principal = identity?.getPrincipal().toString();
 
+  const tabTitle =
+    activeTab === "products"
+      ? "Product Management"
+      : activeTab === "brands"
+        ? "Brand Management"
+        : "Payment Sessions";
+
   return (
     <div className="min-h-screen bg-background">
       <Toaster />
@@ -824,6 +1111,19 @@ export default function AdminDashboard() {
             >
               <Package size={16} />
               Products
+            </button>
+            <button
+              type="button"
+              data-ocid="admin.brands.tab"
+              onClick={() => setActiveTab("brands")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 font-sans text-sm transition-colors ${
+                activeTab === "brands"
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
+              }`}
+            >
+              <Tag size={16} />
+              Brands
             </button>
             <button
               type="button"
@@ -874,9 +1174,7 @@ export default function AdminDashboard() {
             }}
           >
             <h1 className="font-display text-2xl text-foreground">
-              {activeTab === "products"
-                ? "Product Management"
-                : "Payment Sessions"}
+              {tabTitle}
             </h1>
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-green-400" />
@@ -893,7 +1191,13 @@ export default function AdminDashboard() {
             transition={{ duration: 0.25 }}
             className="p-8"
           >
-            {activeTab === "products" ? <ProductsTab /> : <PaymentsTab />}
+            {activeTab === "products" ? (
+              <ProductsTab />
+            ) : activeTab === "brands" ? (
+              <BrandsTab />
+            ) : (
+              <PaymentsTab />
+            )}
           </motion.div>
         </main>
       </div>

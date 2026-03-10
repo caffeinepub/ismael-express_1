@@ -4,6 +4,7 @@ import Map "mo:core/Map";
 import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
+import Migration "migration";
 
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
@@ -12,7 +13,8 @@ import Storage "blob-storage/Storage";
 import Stripe "stripe/stripe";
 import OutCall "http-outcalls/outcall";
 
-
+// Specify the migration function in the with clause
+(with migration = Migration.run)
 actor {
   // Define Product type
   public type Product = {
@@ -25,6 +27,12 @@ actor {
     image : ?Storage.ExternalBlob;
   };
 
+  // Define Brand type
+  public type Brand = {
+    id : Nat;
+    name : Text;
+  };
+
   // Define UserProfile type
   public type UserProfile = {
     name : Text;
@@ -33,6 +41,7 @@ actor {
   // Authorization component
   let accessControlState = AccessControl.initState();
   let storage = Map.empty<Nat, Product>();
+  let brandStorage = Map.empty<Nat, Brand>();
   let userProfiles = Map.empty<Principal, UserProfile>();
   include MixinAuthorization(accessControlState);
   // Mixin for blob storage
@@ -179,6 +188,55 @@ actor {
     filtered.toArray();
   };
 
+  // Brand Management Functions (Admin-only)
+  public query func getAllBrands() : async [Brand] {
+    brandStorage.values().toArray();
+  };
+
+  public shared ({ caller }) func addBrand(name : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can add brands");
+    };
+
+    let id = brandStorage.size();
+    let brand : Brand = {
+      id;
+      name;
+    };
+
+    brandStorage.add(id, brand);
+  };
+
+  public shared ({ caller }) func updateBrand(id : Nat, name : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can update brands");
+    };
+
+    switch (brandStorage.get(id)) {
+      case (null) { Runtime.trap("Brand not found") };
+      case (?_) {
+        let updatedBrand : Brand = {
+          id;
+          name;
+        };
+        brandStorage.add(id, updatedBrand);
+      };
+    };
+  };
+
+  public shared ({ caller }) func deleteBrand(id : Nat) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can delete brands");
+    };
+
+    switch (brandStorage.get(id)) {
+      case (null) { Runtime.trap("Brand not found") };
+      case (?_) {
+        brandStorage.remove(id);
+      };
+    };
+  };
+
   // Stripe Configuration Functions (Admin-only)
   public shared ({ caller }) func setStripeConfiguration(config : Stripe.StripeConfiguration) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
@@ -194,7 +252,7 @@ actor {
     stripeConfiguration;
   };
 
-  // EX2: Required Stripe Functions
+  // Required Stripe Functions
   public query func isStripeConfigured() : async Bool {
     stripeConfiguration != null;
   };
@@ -211,6 +269,9 @@ actor {
   };
 
   public shared ({ caller }) func createCheckoutSession(items : [Stripe.ShoppingItem], successUrl : Text, cancelUrl : Text) : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create checkout sessions");
+    };
     await Stripe.createCheckoutSession(getStripeConfigurationInternal(), caller, items, successUrl, cancelUrl, transform);
   };
 

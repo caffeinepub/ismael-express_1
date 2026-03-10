@@ -236,3 +236,72 @@ export function useSeedProducts() {
     },
   });
 }
+
+// Brand hooks
+export type Brand = { id: bigint; name: string };
+
+export function useGetAllBrands() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Brand[]>({
+    queryKey: ["brands"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return (actor as any).getAllBrands() as Promise<Brand[]>;
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useAddBrand() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      if (!actor) throw new Error("Not connected");
+      await (actor as any).addBrand(name);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brands"] });
+      toast.success("Brand added successfully");
+    },
+    onError: () => {
+      toast.error("Failed to add brand");
+    },
+  });
+}
+
+export function useUpdateBrand() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: bigint; name: string }) => {
+      if (!actor) throw new Error("Not connected");
+      await (actor as any).updateBrand(id, name);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brands"] });
+      toast.success("Brand updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update brand");
+    },
+  });
+}
+
+export function useDeleteBrand() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: bigint) => {
+      if (!actor) throw new Error("Not connected");
+      await (actor as any).deleteBrand(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brands"] });
+      toast.success("Brand deleted");
+    },
+    onError: () => {
+      toast.error("Failed to delete brand");
+    },
+  });
+}

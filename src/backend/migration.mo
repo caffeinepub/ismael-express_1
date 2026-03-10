@@ -3,6 +3,7 @@ import Nat "mo:core/Nat";
 import Storage "blob-storage/Storage";
 
 module {
+  // Original product type.
   type Product = {
     id : Nat;
     name : Text;
@@ -13,30 +14,19 @@ module {
     image : ?Storage.ExternalBlob;
   };
 
-  type OldProduct = {
-    id : Nat;
-    name : Text;
-    brand : Text;
-    category : Text;
-    description : Text;
-    price : Nat;
-  };
-
+  // Original actor type
   type OldActor = {
-    productStore : Map.Map<Nat, OldProduct>;
-    currentId : Nat;
-  };
-
-  type NewActor = {
     storage : Map.Map<Nat, Product>;
   };
 
+  // New actor type
+  type NewActor = {
+    storage : Map.Map<Nat, Product>;
+    brandStorage : Map.Map<Nat, { id : Nat; name : Text }>;
+  };
+
+  // Migration function called by the main actor
   public func run(old : OldActor) : NewActor {
-    let newProducts = old.productStore.map<Nat, OldProduct, Product>(
-      func(_id, oldProduct) {
-        { oldProduct with image = null };
-      }
-    );
-    { storage = newProducts };
+    { old with brandStorage = Map.empty<Nat, { id : Nat; name : Text }>() };
   };
 };
