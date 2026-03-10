@@ -4,7 +4,7 @@ import Map "mo:core/Map";
 import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
-import Migration "migration";
+
 
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
@@ -14,7 +14,7 @@ import Stripe "stripe/stripe";
 import OutCall "http-outcalls/outcall";
 
 // Specify the migration function in the with clause
-(with migration = Migration.run)
+
 actor {
   // Define Product type
   public type Product = {

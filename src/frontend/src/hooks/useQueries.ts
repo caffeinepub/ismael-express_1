@@ -305,3 +305,24 @@ export function useDeleteBrand() {
     },
   });
 }
+
+export function useSeedBrands() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Not connected");
+      const SAMPLE_BRANDS = ["Ralph Lauren", "Jos. A. Bank", "Nike", "Adidas"];
+      for (const name of SAMPLE_BRANDS) {
+        await (actor as any).addBrand(name);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brands"] });
+      toast.success("Sample brands imported successfully");
+    },
+    onError: () => {
+      toast.error("Failed to import sample brands");
+    },
+  });
+}

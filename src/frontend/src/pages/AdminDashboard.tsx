@@ -64,6 +64,7 @@ import {
   useGetAllBrands,
   useGetAllProducts,
   useIsAdmin,
+  useSeedBrands,
   useSeedProducts,
   useStripeSessionStatus,
   useUpdateBrand,
@@ -613,6 +614,7 @@ function BrandsTab() {
   const addBrand = useAddBrand();
   const updateBrand = useUpdateBrand();
   const deleteBrand = useDeleteBrand();
+  const seedBrands = useSeedBrands();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editBrand, setEditBrand] = useState<Brand | null>(null);
@@ -700,6 +702,15 @@ function BrandsTab() {
             Brands added here will appear in the product form and across the
             storefront.
           </p>
+          <Button
+            variant="outline"
+            data-ocid="admin.brands.seed_button"
+            onClick={() => seedBrands.mutate()}
+            disabled={seedBrands.isPending}
+            className="border-primary/40 text-primary hover:bg-primary/5"
+          >
+            {seedBrands.isPending ? "Importing..." : "Import Existing Brands"}
+          </Button>
         </div>
       ) : (
         <div
