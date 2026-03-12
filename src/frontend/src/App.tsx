@@ -407,9 +407,9 @@ function Hero() {
           </div>
 
           <h1 className="font-display text-6xl sm:text-7xl md:text-8xl font-bold text-foreground mb-4 leading-none tracking-tight">
-            Luxury
+            Ismael Express
             <br />
-            <span className="text-primary">Menswear</span>
+            <span className="text-primary">Luxury Menswear</span>
           </h1>
 
           <p className="font-serif text-lg sm:text-xl text-foreground/60 mb-4 italic tracking-wide">
@@ -661,12 +661,12 @@ function AdminFloatingButton() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.3 }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+      className="flex items-center justify-center mt-3 pb-3"
     >
       <Link
         to="/admin"
         data-ocid="admin.dashboard_button"
-        className="flex items-center gap-2.5 bg-primary text-primary-foreground font-sans text-sm font-semibold tracking-widest uppercase px-6 py-3 rounded-full shadow-[0_4px_24px_oklch(0.74_0.12_75_/_0.45)] hover:bg-gold-light hover:shadow-[0_6px_32px_oklch(0.74_0.12_75_/_0.6)] transition-all duration-300"
+        className="admin-glow-pulse flex items-center gap-2.5 bg-primary text-primary-foreground font-sans text-sm font-semibold tracking-widest uppercase px-6 py-3 rounded-full hover:bg-gold-light transition-all duration-300"
       >
         <LayoutDashboard size={16} />
         Admin Dashboard
@@ -686,13 +686,13 @@ function ShopPage() {
         <TrustSection />
       </main>
       <footer className="bg-navy-deep border-t border-border">
-        <div className="max-w-7xl mx-auto px-4 py-5 flex items-center justify-center">
+        <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col items-center justify-center">
           <p className="font-sans text-muted-foreground text-xs">
             © {new Date().getFullYear()} Ismael Express. All rights reserved.
           </p>
+          <AdminFloatingButton />
         </div>
       </footer>
-      <AdminFloatingButton />
     </div>
   );
 }
